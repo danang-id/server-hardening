@@ -1,0 +1,40 @@
+Go libraries used by server-hardening, and why.
+
+Direct dependencies
+-------------------
+github.com/charmbracelet/bubbletea
+    The terminal loop of the full-screen interface: raw keyboard input, the
+    alternate screen, resize events, and drawing the frame. It is used only in
+    internal/app. The screens themselves (internal/screen) never touch the
+    terminal, so they are tested without one.
+
+github.com/charmbracelet/x/ansi
+    Measures the width of text in terminal cells (emoji take two) and cuts
+    text to a width. Used by internal/screen to keep every line aligned.
+
+github.com/charmbracelet/huh
+    The simple one-question prompts of --plain, and the fallback for a
+    terminal that is not interactive or not UTF-8. It is used only in
+    internal/tui.
+
+Everything else (controls, engine, records) uses the Go standard library and
+does not import any of them, so the controls can be tested without a terminal.
+
+Indirect dependencies
+---------------------
+These libraries pull in the other Charm libraries (bubbles, lipgloss) and a
+few terminal helpers. The full, exact list with versions is in go.sum, and
+`go list -m all` prints it. `go mod verify` checks that the downloaded modules
+match go.sum.
+
+Not used
+--------
+No library is used to run commands, edit files, talk to systemd or parse
+configuration. Controls call the system's own tools (apt-get, systemctl, sshd,
+nft, ...) through one small runner, internal/execx, so each action can be read
+in the log exactly as it ran.
+
+Updating
+--------
+Dependencies are pinned by go.mod and go.sum. Update them on purpose
+(`go get -u ./... && go mod tidy`), read the changes, and run the tests.

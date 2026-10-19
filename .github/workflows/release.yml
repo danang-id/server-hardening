@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Danang Galuh Tegar Prasetyo
+
+name: Release
+
+# Push a tag such as v2026.10.20.001 (vYYYY.MM.DD.NNN) to publish the binaries that hardening.sh and
+# hardening.ps1 download, with SUPPORTED, the list of supported systems that
+# hardening.sh reads, and SHA256SUMS, which covers all of them. LICENSE and
+# THIRD_PARTY_LICENSES go with them, because the licenses of the code in the
+# binaries ask for their notices to travel with the binaries.
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build
+        env:
+          CGO_ENABLED: '0'
+        run: |
+          mkdir dist
+          for target in linux/amd64 linux/arm64 windows/amd64; do
+            os=${target%/*}; arch=${target#*/}
+            ext=''; [ "$os" = windows ] && ext='.exe'
+            GOOS=$os GOARCH=$arch go build -trimpath -ldflags '-s -w' -o "dist/hardening-$os-$arch$ext" ./cmd/hardening
+          done
+          ./dist/hardening-linux-amd64 --print-support > dist/SUPPORTED
+          cp LICENSE dist/LICENSE
+          sh scripts/third-party-licenses.sh > dist/THIRD_PARTY_LICENSES
+          (cd dist && sha256sum hardening-* SUPPORTED LICENSE THIRD_PARTY_LICENSES > SHA256SUMS)
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --generate-notes

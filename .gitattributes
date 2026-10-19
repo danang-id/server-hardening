@@ -1,0 +1,8 @@
+# Go tooling and shell scripts need Unix line endings, even on Windows checkouts.
+*.go   text eol=lf
+go.mod text eol=lf
+go.sum text eol=lf
+*.sh   text eol=lf
+*.yml  text eol=lf
+# PowerShell scripts keep Windows line endings.
+*.ps1  text eol=crlf

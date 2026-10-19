@@ -1,0 +1,52 @@
+
+# ── macOS ────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+__MACOSX/
+ 
+# ── Windows ──────────────────────────────
+Thumbs.db
+ehthumbs.db
+desktop.ini
+ 
+# ── Linux ────────────────────────────────
+*~
+.fuse_hidden*
+.nfs*
+ 
+# ── Editors & IDEs ───────────────────────
+ 
+# VS Code
+.vscode/
+ 
+# JetBrains (WebStorm, GoLand, etc.)
+.idea/
+*.iml
+ 
+# Vim / Neovim
+*.swp
+*.swo
+[._]*.un~
+Session.vim
+ 
+# Emacs
+\#*\#
+.\#*
+ 
+# Sublime Text
+*.sublime-workspace
+ 
+# Zed
+.zed/
+
+# ── Secrets ──────────────────────────────
+*.env
+*.env.*
+
+# ── Build output ─────────────────────────
+/hardening
+/hardening.exe
+/dist/

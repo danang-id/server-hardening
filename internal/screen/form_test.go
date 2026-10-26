@@ -261,3 +261,63 @@ func TestFormWrapsLongTextInsteadOfCuttingIt(t *testing.T) {
 		}
 	}
 }
+
+// An input with OnlyIf is asked only when the earlier answer matches.
+func conditionalInputs() []control.Input {
+	only := &control.OnlyIf{Key: "fw", Is: []string{"omz"}}
+	return []control.Input{
+		{Key: "fw", Label: "Framework", Kind: control.Choice, Default: "none", Options: []control.Option{
+			{Value: "none", Label: "None"}, {Value: "omz", Label: "Oh My Zsh"}, {Value: "zim", Label: "Zim"}}},
+		{Key: "theme", Label: "Theme", Default: "robby", OnlyIf: only},
+		{Key: "plugins", Label: "Plugins", Default: "git", OnlyIf: only},
+	}
+}
+
+func TestFormSkipsQuestionsThatDoNotApply(t *testing.T) {
+	f := NewForm("x", "t", conditionalInputs())
+	contains(t, f.View(80, 24), "Framework")
+	if strings.Contains(plain(f.View(80, 24)), "question") {
+		t.Fatal("a single question is not counted")
+	}
+	if ev := press(f, "enter"); ev != Done {
+		t.Fatalf("None leaves nothing more to ask: %v", ev)
+	}
+	if _, ok := f.Values["theme"]; ok {
+		t.Fatalf("an unasked question has no answer: %v", f.Values)
+	}
+	if f.Values.String("fw") != "none" {
+		t.Fatalf("got %v", f.Values)
+	}
+}
+
+func TestFormAsksTheQuestionsOfTheChosenOption(t *testing.T) {
+	f := NewForm("x", "t", conditionalInputs())
+	press(f, "down") // Oh My Zsh
+	contains(t, f.View(80, 24), "question 01 of 03")
+	if ev := press(f, "enter"); ev != None {
+		t.Fatal("the theme comes next")
+	}
+	contains(t, f.View(80, 24), "Theme", "question 02 of 03")
+	typed(f, "2")
+	press(f, "enter")
+	contains(t, f.View(80, 24), "Plugins", "enter continue")
+	// Back to the choice, switch to Zim: the Oh My Zsh questions go away.
+	press(f, "shift+tab", "shift+tab", "down")
+	contains(t, f.View(80, 24), "Framework")
+	if ev := press(f, "enter"); ev != Done {
+		t.Fatalf("Zim asks nothing more: %v", ev)
+	}
+	if f.Values.String("fw") != "zim" || len(f.Values) != 1 {
+		t.Fatalf("got %v", f.Values)
+	}
+}
+
+func TestFormKeepsTheAnswersOfAQuestionThatApplies(t *testing.T) {
+	f := NewForm("x", "t", conditionalInputs())
+	press(f, "down", "enter") // Oh My Zsh, then the theme
+	typed(f, "2")
+	press(f, "enter", "enter")
+	if f.Values.String("theme") != "robby2" || f.Values.String("plugins") != "git" {
+		t.Fatalf("got %v", f.Values)
+	}
+}

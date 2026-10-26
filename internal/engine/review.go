@@ -33,6 +33,9 @@ func buildReview(plan *Plan, revert bool, asked map[string][]control.Input, answ
 func valueLines(inputs []control.Input, v control.Values) []string {
 	var out []string
 	for _, in := range inputs {
+		if !in.ShownFor(v) {
+			continue
+		}
 		label := strings.TrimSpace(in.Label)
 		if i := strings.IndexAny(label, "(:"); i > 0 {
 			label = strings.TrimSpace(label[:i])

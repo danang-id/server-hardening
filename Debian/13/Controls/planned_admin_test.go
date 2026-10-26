@@ -62,16 +62,6 @@ func TestZshAsksAboutTheSystemWhenNoAdminIsPlanned(t *testing.T) {
 	}
 }
 
-func TestOhMyZshOffersTheAdminAccountThatWillBeCreated(t *testing.T) {
-	env, _, _ := omzEnv(t)
-	env.Answered = plannedAnswers("dan")
-	in, err := omzControl().Inputs(context.Background(), env)
-	must(t, err)
-	if !strings.HasSuffix(optionValues(in[0]), ",dan") || strings.Join(in[0].DefaultMulti, ",") != "dan" {
-		t.Fatalf("offered %s, ticked %v", optionValues(in[0]), in[0].DefaultMulti)
-	}
-}
-
 func TestAllowUsersSuggestsTheAdminAccountThatWillBeCreated(t *testing.T) {
 	env, _, _ := sshEnv(t)
 	env.Answered = plannedAnswers("dan")

@@ -108,8 +108,7 @@ No category is N/A on Debian 13.
 | 1001 | `misc.basic-tools` | Install common administration tools | No | | | input |
 | 1002 | `misc.swapfile` | Create a swap file | No | | | input |
 | 1003 | `misc.vm-tuning` | Tune virtual memory settings | No | | | input |
-| 1004 | `misc.zsh` | Install zsh | No | | | input |
-| 1005 | `misc.oh-my-zsh` | Install Oh My Zsh | No | | `misc.zsh` | input, external |
+| 1004 | `misc.zsh` | Install zsh | No | | | input, external |
 | 1006 | `misc.health-check` | Verify the finished system | Yes | 990 | | readonly |
 | 1007 | `misc.notify` | Send event notifications to a webhook | No | | | input |
 
@@ -135,8 +134,7 @@ Controls that can be reverted only in part:
 | `asr.review-services` | Re-enables the services the control disabled. |
 | `system-kernel.disable-kexec`, `system-kernel.restrict-bpf`, `system-kernel.restrict-ptrace` | The kernel may keep the setting until the next reboot. |
 | `ldp.aide` | Removes the baseline database. |
-| `misc.zsh` | Restores the recorded login shell. The package stays. |
-| `misc.oh-my-zsh` | Removes the framework and restores the recorded `.zshrc`. Edits made inside the framework are lost. |
+| `misc.zsh` | Removes the framework, restores the recorded `.zshrc` and `.zimrc`, and puts back the recorded login shell. Edits made inside a framework are lost. The package stays. |
 
 ## 01 Operating System Baseline
 
@@ -1723,58 +1721,34 @@ Filesystems that cloud images use, such as `iso9660` and `udf`, are not in the l
 | **Default** | No |
 | **Weight** | 500 |
 | **Requires** | none |
-| **Tags** | input |
+| **Tags** | input, external |
 
-**What it does.** Installs `zsh` and, if you want, makes it the login shell for the accounts you pick.
+**What it does.** Installs `zsh` and, if you want, makes it the login shell for the accounts you pick. It can also set up a zsh framework for those accounts: Oh My Zsh or Zim.
 
-**Why.** Some administrators prefer it for completion and history. It is optional and has no security purpose.
+**Why.** Some administrators prefer it for completion and history. A framework adds themes, completion and plugins. All of it is optional and has no security purpose.
 
-**What it changes.** Installs the `zsh` package from the Debian archive. For each chosen account, changes the login shell.
+**What it changes.**
+- Installs the `zsh` package from the Debian archive. For each chosen account, changes the login shell.
+- With a framework: downloads it from its project on GitHub into the account's home directory, as that account, and writes the starter files of the framework (`.zshrc`, and `.zimrc` for Zim). An existing `.zshrc` is backed up first. Installs `git`, and `curl` for Zim, if they are missing.
+- Oh My Zsh is one fixed commit (the last commit of 30 August 2026, chosen by this tool), not the newest version.
+- Zim is one fixed release (v1.20.1). Its script is checked against a checksum kept in this tool before it runs, and the modules of the default setup (`environment`, `git`, `input`, `termtitle`, `utility`, `duration-info`, `asciiship`, `completion`) are fixed commits too. Nothing downloaded is run while installing, except the checked Zim script, which builds its start file from the modules already in place and needs no network.
 
-**Inputs.** The accounts that get `zsh` as login shell. Default: the admin account only. Root is not offered by default, because a working root shell matters most when something is broken.
+**Inputs.**
+- The accounts that get `zsh` as login shell. Default: the admin account only. Root is not offered by default, because a working root shell matters most when something is broken.
+- The framework: none, Oh My Zsh or Zim. Default: none. It is set up for the accounts above.
+- For Oh My Zsh only: the theme (default `robbyrussell`, it must exist in the framework) and the plugins, separated by spaces (default `git`, each must exist in the framework).
+
+The control stops before any download if an account already has a directory of the framework (`.oh-my-zsh`, `.zim`) or a `.zimrc`, or has a different framework from this control. It removes what it downloaded if a step fails, and the next run installs the framework again. More frameworks can be added later.
 
 **Side effects.** Scripts that expect `bash` as the login shell can behave differently. Automated logins such as `ssh host command` run through the login shell too. Forced commands and `sftp-only` accounts are not affected.
 
-**How to verify.** `zsh` is installed, and each chosen account has it as login shell.
+A framework runs third-party code from the internet inside your shell every time you log in. This is why the control is tagged `external`. Pinning to a release helps against a changed script, but it does not make the code reviewed. Plugins and modules also add startup time. Do not set a framework up for accounts that have access to sensitive data.
 
-**Revert.** Puts back each account's recorded previous login shell.
+**How to verify.** `zsh` is installed, and each chosen account has it as login shell. With a framework, its directory exists for each chosen account, and `.zshrc` loads it.
 
-**Revert limits.** The `zsh` package stays installed. Open sessions keep their current shell until the next login.
+**Revert.** Removes the framework directories, puts back the recorded `.zshrc` and removes the `.zimrc` the control wrote. Puts back each account's recorded previous login shell.
 
-<a id="misc.oh-my-zsh"></a>
-
-### misc.oh-my-zsh
-
-| | |
-|---|---|
-| **Default** | No |
-| **Weight** | 500 |
-| **Requires** | `misc.zsh` |
-| **Tags** | input, external |
-
-**What it does.** Installs the Oh My Zsh framework for the accounts you pick.
-
-**Why.** It adds themes, completion and plugins to `zsh`. It is purely a convenience.
-
-**What it changes.**
-- Downloads the framework from its project on GitHub, into the account's home directory as that account. The download is one fixed commit (the last commit of 30 August 2026, chosen by this tool), not the newest version. Nothing from it is run while installing.
-- Writes a starter `.zshrc` for each chosen account. An existing `.zshrc` is backed up first.
-- Installs `git` if it is missing.
-
-**Inputs.**
-- The accounts to set up. Default: the admin account.
-- The theme. Default: `robbyrussell`. It must exist in the framework.
-- The plugins, separated by spaces. Default: `git`. Each must exist in the framework.
-
-The control stops before any download if an account already has an `.oh-my-zsh` directory, and it removes what it downloaded if a step fails.
-
-**Side effects.** This control runs third-party code from the internet inside your shell every time you log in. It is the only control that does this, which is why it is tagged `external`. Pinning to a release helps against a changed script, but it does not make the code reviewed. Plugins also add startup time. Do not install it on accounts that have access to sensitive data.
-
-**How to verify.** The framework directory exists for each chosen account, and `.zshrc` loads it.
-
-**Revert.** Removes the framework directory and puts back the recorded `.zshrc`.
-
-**Revert limits.** Changes you made inside the framework directory are lost. `zsh` and `git` stay installed.
+**Revert limits.** The `zsh` package stays installed, and so do `git` and `curl` if a framework needed them. Open sessions keep their current shell until the next login. Changes you made inside a framework directory are lost.
 
 <a id="misc.health-check"></a>
 

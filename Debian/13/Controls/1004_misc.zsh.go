@@ -6,6 +6,7 @@ package controls
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/danang-id/server-hardening/internal/apt"
@@ -27,8 +28,8 @@ func init() {
 		Number:       4,
 		Title:        "Install zsh",
 		Default:      false,
-		Tags:         []control.Tag{control.TagInput},
-		RevertLimits: "The zsh package stays installed. Open sessions keep their current shell until the next login.",
+		Tags:         []control.Tag{control.TagInput, control.TagExternal},
+		RevertLimits: "The zsh package stays installed, and so do git and curl if a framework needed them. Open sessions keep their current shell until the next login. Changes made inside a framework directory are lost.",
 	}}})
 }
 
@@ -79,11 +80,12 @@ func (z *zsh) Inputs(_ context.Context, env *control.Env) ([]control.Input, erro
 	if len(opts) == 0 {
 		return nil, nil
 	}
-	return []control.Input{{
+	in := []control.Input{{
 		Key: "accounts", Label: "Which accounts get zsh as their login shell?",
 		Help: "The package is installed in any case.",
 		Kind: control.MultiChoice, Options: opts, DefaultMulti: admins,
-	}}, nil
+	}}
+	return append(in, frameworkInputs()...), nil
 }
 
 func (z *zsh) Check(ctx context.Context, env *control.Env) (control.State, error) {
@@ -99,10 +101,30 @@ func (z *zsh) Check(ctx context.Context, env *control.Env) (control.State, error
 			return control.Partial, nil
 		}
 	}
+	v, _, _ = env.Rec.Get(zshID, "frameworks")
+	for _, u := range lines(v) {
+		a, ok, _ := findAccount(env, u)
+		if !ok {
+			continue
+		}
+		name, _, _ := env.Rec.Get(zshID, "framework:"+u)
+		if fw := frameworkNamed(name); fw != nil && !fw.Healthy(env, a) {
+			return control.Partial, nil
+		}
+	}
 	return control.Applied, nil
 }
 
 func (z *zsh) Apply(ctx context.Context, env *control.Env, in control.Values) error {
+	var fw zshFramework
+	if name := in.String("framework"); name != "" && name != zshNoFramework {
+		if fw = frameworkNamed(name); fw == nil {
+			return fmt.Errorf("there is no zsh framework %q", name)
+		}
+		if err := fw.Verify(in); err != nil {
+			return err
+		}
+	}
 	if err := apt.Install(ctx, env, "zsh"); err != nil {
 		return err
 	}
@@ -119,6 +141,11 @@ func (z *zsh) Apply(ctx context.Context, env *control.Env, in control.Values) er
 		}
 		if !ok {
 			return fmt.Errorf("there is no account %q", u)
+		}
+		if fw != nil {
+			if err := frameworkFits(env, fw, a); err != nil {
+				return err
+			}
 		}
 		todo = append(todo, a)
 	}
@@ -153,13 +180,96 @@ func (z *zsh) Apply(ctx context.Context, env *control.Env, in control.Values) er
 		}
 		env.Log.Infof("%s now uses zsh", a.Name)
 	}
-	return env.Rec.Put(zshID, "accounts", strings.Join(all, "\n"))
+	if err := env.Rec.Put(zshID, "accounts", strings.Join(all, "\n")); err != nil {
+		return err
+	}
+	if fw == nil || len(todo) == 0 {
+		return nil
+	}
+	return setUpFramework(ctx, env, fw, todo, in)
+}
+
+// frameworkFits refuses to set a framework up in an account that has another
+// one from this control, or has files of its own where the framework goes.
+func frameworkFits(env *control.Env, fw zshFramework, a account) error {
+	cur, _, _ := env.Rec.Get(zshID, "framework:"+a.Name)
+	switch {
+	case cur == fw.Name():
+		return nil // ours: a repair
+	case cur != "":
+		return fmt.Errorf("%s has %s already. Revert this control to remove it first, or leave the account out", a.Name, cur)
+	}
+	if why := fw.Occupied(env, a); why != "" {
+		return fmt.Errorf("%s: %s", a.Name, why)
+	}
+	return nil
+}
+
+// setUpFramework puts the framework in the home directory of each account. The
+// choice is recorded before the download, so that an install that fails half
+// way shows as partial and the next run repairs it.
+func setUpFramework(ctx context.Context, env *control.Env, fw zshFramework, todo []account, in control.Values) error {
+	if err := apt.Install(ctx, env, fw.Packages()...); err != nil {
+		return err
+	}
+	env.Log.Warnf("downloading %s. It runs third-party code in the shell of every chosen account", fw.Source())
+	prev, _, _ := env.Rec.Get(zshID, "frameworks")
+	users := lines(prev)
+	for _, a := range todo {
+		cur, _, _ := env.Rec.Get(zshID, "framework:"+a.Name)
+		if cur == fw.Name() && fw.Healthy(env, a) {
+			continue
+		}
+		if cur == fw.Name() {
+			env.Log.Warnf("%s: %s is incomplete, installing it again", a.Name, fw.Name())
+			if err := fw.Remove(env, a); err != nil {
+				return fmt.Errorf("%s: %w", a.Name, err)
+			}
+		}
+		if err := env.Rec.Put(zshID, "framework:"+a.Name, fw.Name()); err != nil {
+			return err
+		}
+		if !contains(users, a.Name) {
+			users = append(users, a.Name)
+			if err := env.Rec.Put(zshID, "frameworks", strings.Join(users, "\n")); err != nil {
+				return err
+			}
+		}
+		if err := fw.Install(ctx, env, a, in); err != nil {
+			return fmt.Errorf("%s: %w", a.Name, err)
+		}
+		env.Log.Infof("installed %s for %s", fw.Name(), a.Name)
+	}
+	return nil
 }
 
 func (z *zsh) Revert(ctx context.Context, env *control.Env) error {
 	if !env.Rec.Has(zshID) {
 		env.Log.Warnf("%s: no record, leaving login shells alone", zshID)
 		return nil
+	}
+	fv, _, _ := env.Rec.Get(zshID, "frameworks")
+	for _, u := range lines(fv) {
+		a, ok, _ := findAccount(env, u)
+		if !ok {
+			continue
+		}
+		name, _, _ := env.Rec.Get(zshID, "framework:"+u)
+		fw := frameworkNamed(name)
+		if fw == nil {
+			continue
+		}
+		if err := fw.Remove(env, a); err != nil {
+			return err
+		}
+		for _, p := range fw.Files(a) {
+			if err := restoreFile(env, zshID, p); err != nil {
+				return err
+			}
+			if files.Exists(env.Path(p)) {
+				_, _ = env.Run.Run(ctx, "chown", strconv.Itoa(a.UID)+":"+strconv.Itoa(a.GID), p)
+			}
+		}
 	}
 	v, _, _ := env.Rec.Get(zshID, "accounts")
 	for _, u := range lines(v) {

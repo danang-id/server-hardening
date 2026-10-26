@@ -145,6 +145,20 @@ func TestValueLines(t *testing.T) {
 	}
 }
 
+func TestValueLinesLeavesOutQuestionsThatWereNotAsked(t *testing.T) {
+	only := &control.OnlyIf{Key: "fw", Is: []string{"omz"}}
+	in := []control.Input{
+		{Key: "fw", Label: "Framework", Kind: control.Choice, Options: []control.Option{{Value: "none", Label: "None"}, {Value: "omz", Label: "Oh My Zsh"}}},
+		{Key: "theme", Label: "Theme", OnlyIf: only},
+	}
+	if got := strings.Join(valueLines(in, control.Values{"fw": {"none"}}), "|"); got != "Framework: None" {
+		t.Fatalf("got %q", got)
+	}
+	if got := strings.Join(valueLines(in, control.Values{"fw": {"omz"}, "theme": {"agnoster"}}), "|"); got != "Framework: Oh My Zsh|Theme: agnoster" {
+		t.Fatalf("got %q", got)
+	}
+}
+
 func TestGuidedDeclinedDependenciesLeaveNothingToRun(t *testing.T) {
 	var log []string
 	sys := build(&log,

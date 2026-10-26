@@ -111,6 +111,9 @@ func (u *UI) AskInputs(ctx context.Context, c control.Control, inputs []control.
 	out := control.Values{}
 	fmt.Fprintf(u.Out, "\n%s\n", c.Meta().Title)
 	for _, in := range inputs {
+		if !in.ShownFor(out) {
+			continue
+		}
 		switch in.Kind {
 		case control.Choice:
 			v := in.Default

@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"slices"
 	"time"
 )
 
@@ -172,6 +173,30 @@ type Input struct {
 	Optional     bool     // an empty answer is allowed
 	Confirm      bool     // Secret only: ask twice, both answers must match
 	Validate     func(string) error
+	OnlyIf       *OnlyIf // when set, the input is asked only if this holds
+}
+
+// OnlyIf limits an input to the case where an earlier input of the same
+// control has one of the answers in Is. The earlier input must come first in
+// the list. An input that is left out has no answer, so an input that depends
+// on it is left out too.
+type OnlyIf struct {
+	Key string
+	Is  []string
+}
+
+// ShownFor reports whether the input is asked, given the answers to the
+// inputs before it.
+func (in Input) ShownFor(v Values) bool {
+	if in.OnlyIf == nil {
+		return true
+	}
+	for _, a := range v[in.OnlyIf.Key] {
+		if slices.Contains(in.OnlyIf.Is, a) {
+			return true
+		}
+	}
+	return false
 }
 
 // Values holds the answers to a control's inputs.

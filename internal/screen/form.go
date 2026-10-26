@@ -113,46 +113,69 @@ func (f *Form) validate(fl *field) bool {
 	return true
 }
 
+// collect returns the answers so far and which fields are on the form. A field
+// that its condition leaves out gives no answer.
+func (f *Form) collect() (control.Values, []bool) {
+	v := control.Values{}
+	shown := make([]bool, len(f.fields))
+	for i, fl := range f.fields {
+		if fl.repeatOf >= 0 {
+			shown[i] = shown[fl.repeatOf]
+			continue
+		}
+		if !fl.in.ShownFor(v) {
+			continue
+		}
+		shown[i] = true
+		switch fl.in.Kind {
+		case control.Choice:
+			if len(fl.in.Options) > 0 {
+				v[fl.in.Key] = []string{fl.in.Options[fl.cursor].Value}
+			} else {
+				v[fl.in.Key] = []string{""}
+			}
+		case control.MultiChoice:
+			var l []string
+			for i, o := range fl.in.Options {
+				if fl.checked[i] {
+					l = append(l, o.Value)
+				}
+			}
+			v[fl.in.Key] = l
+		case control.TextArea:
+			v[fl.in.Key] = []string{strings.TrimRight(fl.ed.text(), "\n ")}
+		default:
+			v[fl.in.Key] = []string{fl.ed.text()}
+		}
+	}
+	return v, shown
+}
+
+// step returns the field after (dir 1) or before (dir -1) the current one that
+// is on the form, or -1 when there is none.
+func (f *Form) step(dir int) int {
+	_, shown := f.collect()
+	for i := f.idx + dir; i >= 0 && i < len(f.fields); i += dir {
+		if shown[i] {
+			return i
+		}
+	}
+	return -1
+}
+
 func (f *Form) next() Event {
 	if !f.validate(f.cur()) {
 		return None
 	}
-	if f.idx < len(f.fields)-1 {
-		f.idx++
+	if i := f.step(1); i >= 0 {
+		f.idx = i
 		return None
 	}
 	f.finish()
 	return Done
 }
 
-func (f *Form) finish() {
-	f.Values = control.Values{}
-	for _, fl := range f.fields {
-		if fl.repeatOf >= 0 {
-			continue
-		}
-		switch fl.in.Kind {
-		case control.Choice:
-			if len(fl.in.Options) > 0 {
-				f.Values[fl.in.Key] = []string{fl.in.Options[fl.cursor].Value}
-			} else {
-				f.Values[fl.in.Key] = []string{""}
-			}
-		case control.MultiChoice:
-			var v []string
-			for i, o := range fl.in.Options {
-				if fl.checked[i] {
-					v = append(v, o.Value)
-				}
-			}
-			f.Values[fl.in.Key] = v
-		case control.TextArea:
-			f.Values[fl.in.Key] = []string{strings.TrimRight(fl.ed.text(), "\n ")}
-		default:
-			f.Values[fl.in.Key] = []string{fl.ed.text()}
-		}
-	}
-}
+func (f *Form) finish() { f.Values, _ = f.collect() }
 
 func (f *Form) Key(k string) Event {
 	fl := f.cur()
@@ -162,8 +185,8 @@ func (f *Form) Key(k string) Event {
 	case "esc":
 		return Back
 	case "shift+tab":
-		if f.idx > 0 {
-			f.idx--
+		if i := f.step(-1); i >= 0 {
+			f.idx = i
 		}
 		return None
 	case "tab":
@@ -217,8 +240,18 @@ func (f *Form) View(w, h int) []Line {
 	bw := modalWidth(w)
 	cw := bw - 4
 	var rows []Line
-	if len(f.fields) > 1 {
-		rows = append(rows, Right(cw, L(""), L("question "+two(f.idx+1)+" of "+two(len(f.fields)), Dim)))
+	_, shown := f.collect()
+	total, pos := 0, 0
+	for i, ok := range shown {
+		if ok {
+			total++
+			if i <= f.idx {
+				pos++
+			}
+		}
+	}
+	if total > 1 {
+		rows = append(rows, Right(cw, L(""), L("question "+two(pos)+" of "+two(total), Dim)))
 	}
 	for _, ln := range Wrap(fl.label, cw) {
 		rows = append(rows, L(ln, Bold))
@@ -289,7 +322,7 @@ func optionRows(fl *field, cw int) []Line {
 }
 
 func (f *Form) footer(w int, fl *field) Line {
-	last := f.idx == len(f.fields)-1
+	last := f.step(1) < 0
 	next := "next"
 	if last {
 		next = "continue"
@@ -305,7 +338,7 @@ func (f *Form) footer(w int, fl *field) Line {
 	default:
 		left = []Hint{{"↑↓", "choose"}, {"enter", next}}
 	}
-	if f.idx > 0 {
+	if f.step(-1) >= 0 {
 		left = append(left, Hint{"shift+tab", "prev"})
 	}
 	left = append(left, Hint{"esc", "back"})

@@ -13,12 +13,18 @@
 #
 #   sh scripts/third-party-licenses.sh > THIRD_PARTY_LICENSES
 #
-# It stops with an error if a library has no license file, so that a missing
-# notice is found before a release and not after.
+# A library whose published module has no license file can have its notice
+# supplied by this repository, in scripts/licenses/<module path>/LICENSE. Add one
+# only after checking the license that the library's author states.
+#
+# The script reports every library that still has no notice and then stops
+# with an error, so that a missing notice is found before a release and not
+# after.
 set -eu
 
 pkg=${1:-./cmd/hardening}
 tab=$(printf '\t')
+supplied=$(dirname "$0")/licenses
 
 line() { printf '================================================================\n'; }
 
@@ -35,7 +41,12 @@ mods=$(
     done | grep . | sort -u
 )
 
-printf '%s\n' "$mods" | while IFS=$tab read -r path version dir; do
+list=$(mktemp)
+trap 'rm -f "$list"' EXIT
+printf '%s\n' "$mods" > "$list"
+
+missing=0
+while IFS=$tab read -r path version dir; do
     found=0
     for f in "$dir"/LICENSE* "$dir"/LICENCE* "$dir"/COPYING*; do
         [ -f "$f" ] || continue
@@ -46,11 +57,20 @@ printf '%s\n' "$mods" | while IFS=$tab read -r path version dir; do
         printf '\n'
         found=1
     done
+    if [ "$found" -eq 0 ] && [ -f "$supplied/$path/LICENSE" ]; then
+        line
+        printf '%s %s (LICENSE, supplied by this repository)\n' "$path" "$version"
+        line
+        cat "$supplied/$path/LICENSE"
+        printf '\n'
+        found=1
+    fi
     if [ "$found" -eq 0 ]; then
         printf 'error: no license file found for %s %s in %s\n' "$path" "$version" "$dir" >&2
-        exit 1
+        missing=1
     fi
-done
+done < "$list"
+[ "$missing" -eq 0 ] || exit 1
 
 goroot=$(go env GOROOT)
 line

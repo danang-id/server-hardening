@@ -68,6 +68,22 @@ func TestEnforceListsAndEnforcesComplainProfiles(t *testing.T) {
 	}
 }
 
+// AppArmor can run without apparmor-utils, which ships aa-enforce.
+func TestEnforceInstallsTheToolItRuns(t *testing.T) {
+	ctx := context.Background()
+	env, run, s := sysEnv(t)
+	aaSim(run, map[string]string{"a": "complain"})
+	c := enforceControl()
+	must(t, c.Apply(ctx, env, control.Values{"profiles": {}}))
+	if s.installed["apparmor-utils"] {
+		t.Fatal("nothing to enforce: nothing to install")
+	}
+	must(t, c.Apply(ctx, env, control.Values{"profiles": {"a"}}))
+	if !s.installed["apparmor-utils"] {
+		t.Fatal("apparmor-utils must be installed before aa-enforce runs")
+	}
+}
+
 func TestEnforceRollsBackOnFailure(t *testing.T) {
 	env, run, _ := sysEnv(t)
 	modes := map[string]string{"a": "complain", "b": "complain"}

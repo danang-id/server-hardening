@@ -48,6 +48,40 @@ func TestDebsumsCleanSystem(t *testing.T) {
 	}
 }
 
+// A minimal image leaves out translated man pages. debsums reports every one of
+// them and exits with status 2, which is no finding.
+func TestDebsumsIgnoresDocumentationLeftOut(t *testing.T) {
+	env, run, _ := sysEnv(t)
+	run.out["debsums -c"] = "debsums: missing file /usr/share/man/de/man8/adduser.8.gz (from adduser package)\n" +
+		"debsums: missing file /usr/share/doc/apt/changelog.gz (from apt package)\n" +
+		"debsums: missing file /usr/share/locale/fr/LC_MESSAGES/apt.mo (from apt package)\n"
+	run.fail["debsums -c"] = true
+	c := debsumsControl()
+	must(t, c.Apply(context.Background(), env, nil))
+	if state(t, c, env) != control.Applied {
+		t.Fatal("documentation left out is not a difference")
+	}
+}
+
+// A program that a package lists but that is gone is a finding, next to a file
+// that changed.
+func TestDebsumsReportsMissingProgramsAndChangedFiles(t *testing.T) {
+	env, run, _ := sysEnv(t)
+	run.out["debsums -c"] = "debsums: missing file /usr/share/man/de/man8/adduser.8.gz (from adduser package)\n" +
+		"debsums: missing file /usr/bin/ls (from coreutils package)\n" +
+		"/etc/ssh/sshd_config\n"
+	run.fail["debsums -c"] = true
+	c := debsumsControl()
+	must(t, c.Apply(context.Background(), env, nil))
+	got, _, _ := env.Rec.Get(debsumsID, "changed")
+	if got != "/etc/ssh/sshd_config\n/usr/bin/ls" {
+		t.Fatalf("baseline: %q", got)
+	}
+	if state(t, c, env) != control.Partial {
+		t.Fatal("findings make it partial")
+	}
+}
+
 func TestDebsumsFailureWithoutOutputIsAnError(t *testing.T) {
 	env, run, _ := sysEnv(t)
 	run.fail["debsums -c"] = true

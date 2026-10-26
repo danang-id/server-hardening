@@ -28,22 +28,54 @@ func init() {
 	}}})
 }
 
-// changedFiles runs debsums and returns the files that differ from their
-// package, sorted. debsums exits with an error when it finds a difference, so
-// the output counts even when the command reports failure.
-func changedFiles(ctx context.Context, env *control.Env) ([]string, error) {
-	out, err := env.Run.Run(ctx, "debsums", "-c")
-	var files []string
-	for l := range strings.SplitSeq(string(out), "\n") {
-		if l = strings.TrimSpace(l); strings.HasPrefix(l, "/") {
-			files = append(files, l)
+// debsumsMissing starts the line that debsums prints for a file that its
+// package lists but that is not on the disk.
+const debsumsMissing = "debsums: missing file "
+
+// leftOutPrefixes are the places where images and containers commonly leave
+// package files out on purpose (dpkg path-exclude): documentation and
+// translations. A missing file there is not a finding.
+var leftOutPrefixes = []string{
+	"/usr/share/man/", "/usr/share/doc/", "/usr/share/info/",
+	"/usr/share/locale/", "/usr/share/lintian/",
+}
+
+func leftOut(path string) bool {
+	for _, p := range leftOutPrefixes {
+		if strings.HasPrefix(path, p) {
+			return true
 		}
 	}
-	if err != nil && len(files) == 0 {
-		return nil, fmt.Errorf("debsums failed: %w: %s", err, strings.TrimSpace(string(out)))
+	return false
+}
+
+// changedFiles runs debsums and returns the files that differ from their
+// package or that are missing, sorted. Files that are missing only because the
+// system leaves out documentation are not returned: absent counts them.
+//
+// debsums exits with an error when it finds a difference or a missing file, so
+// the output counts even when the command reports failure.
+func changedFiles(ctx context.Context, env *control.Env) (files []string, absent int, err error) {
+	out, runErr := env.Run.Run(ctx, "debsums", "-c")
+	for l := range strings.SplitSeq(string(out), "\n") {
+		l = strings.TrimSpace(l)
+		switch {
+		case strings.HasPrefix(l, "/"):
+			files = append(files, l)
+		case strings.HasPrefix(l, debsumsMissing):
+			path, _, _ := strings.Cut(strings.TrimPrefix(l, debsumsMissing), " ")
+			if leftOut(path) {
+				absent++
+			} else {
+				files = append(files, path)
+			}
+		}
+	}
+	if runErr != nil && len(files) == 0 && absent == 0 {
+		return nil, 0, fmt.Errorf("debsums failed: %w: %s", runErr, strings.TrimSpace(string(out)))
 	}
 	sort.Strings(files)
-	return files, nil
+	return files, absent, nil
 }
 
 func (d *debsumsBaseline) Check(_ context.Context, env *control.Env) (control.State, error) {
@@ -60,9 +92,12 @@ func (d *debsumsBaseline) Apply(ctx context.Context, env *control.Env, _ control
 	if err := apt.Install(ctx, env, "debsums"); err != nil {
 		return err
 	}
-	now, err := changedFiles(ctx, env)
+	now, absent, err := changedFiles(ctx, env)
 	if err != nil {
 		return err
+	}
+	if absent > 0 {
+		env.Log.Infof("%d documentation files that packages list are not installed on this system. They are not counted", absent)
 	}
 	prev, had, _ := env.Rec.Get(debsumsID, "changed")
 	before := map[string]bool{}

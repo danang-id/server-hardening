@@ -49,9 +49,12 @@ func TestAIDEBuildsBaseline(t *testing.T) {
 	if fi, _ := os.Stat(env.Path(aideRunPath)); fi.Mode().Perm() != 0o755 {
 		t.Fatalf("the script must be executable: %v", fi.Mode())
 	}
-	i, j := strings.Index(strings.Join(run.calls, "\n"), "update-aide.conf"), strings.Index(strings.Join(run.calls, "\n"), "aideinit")
-	if i < 0 || j < 0 || i > j {
-		t.Fatalf("update-aide.conf must run before aideinit: %v", run.calls)
+	calls := strings.Join(run.calls, "\n")
+	if !strings.Contains(calls, "aideinit") {
+		t.Fatalf("aideinit must run: %v", run.calls)
+	}
+	if strings.Contains(calls, "update-aide.conf") {
+		t.Fatalf("Debian 13 has no update-aide.conf: %v", run.calls)
 	}
 	sum := sha256.Sum256([]byte("database v1"))
 	if got, _, _ := env.Rec.Get(aideID, "sha256"); got != hex.EncodeToString(sum[:]) {

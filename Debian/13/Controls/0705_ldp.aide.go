@@ -189,14 +189,11 @@ func (a *aide) Apply(ctx context.Context, env *control.Env, in control.Values) e
 	if err := putFile(env, aideID, aideRunPath, aideRunScript, 0o755); err != nil {
 		return err
 	}
+	// aide reads every file in /etc/aide/aide.conf.d itself. Debian removed
+	// update-aide.conf, which used to assemble the configuration, in aide 0.17.
 	undo := func() {
 		_ = restoreFile(env, aideID, aideExclude)
 		_ = restoreFile(env, aideID, aideRunPath)
-		_, _ = env.Run.Run(ctx, "update-aide.conf")
-	}
-	if out, err := env.Run.Run(ctx, "update-aide.conf"); err != nil {
-		undo()
-		return fmt.Errorf("update-aide.conf failed: %w: %s", err, strings.TrimSpace(string(out)))
 	}
 	// A database that was there before is kept in the records.
 	if err := env.Rec.Backup(aideID, env.Path(aideDB)); err != nil {
@@ -233,8 +230,5 @@ func (a *aide) Revert(ctx context.Context, env *control.Env) error {
 		}
 	}
 	_ = os.Remove(env.Path(aideDBNew))
-	if _, err := env.Run.Run(ctx, "update-aide.conf"); err != nil {
-		env.Log.Warnf("update-aide.conf failed: %v", err)
-	}
 	return env.Rec.Delete(aideID)
 }

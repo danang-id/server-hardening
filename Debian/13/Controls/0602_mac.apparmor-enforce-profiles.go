@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/danang-id/server-hardening/internal/apt"
 	"github.com/danang-id/server-hardening/internal/control"
 )
 
@@ -98,6 +99,13 @@ func (a *apparmorEnforce) Check(ctx context.Context, env *control.Env) (control.
 }
 
 func (a *apparmorEnforce) Apply(ctx context.Context, env *control.Env, in control.Values) error {
+	// aa-enforce comes from apparmor-utils. A server can run AppArmor without
+	// it, and the engine does not run the control above again for that.
+	if len(in.List("profiles")) > 0 {
+		if err := apt.Install(ctx, env, "apparmor-utils"); err != nil {
+			return err
+		}
+	}
 	complain, err := complainProfiles(ctx, env)
 	if err != nil {
 		return err

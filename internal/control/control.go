@@ -125,12 +125,18 @@ func (m Meta) Revertible() bool {
 // State is the result of a control's check.
 type State int
 
-// The states a check can report. Partial means that only part of the control's
-// effect is in place.
+// The states a check can report.
+//
+// Partial means that only part of the control's effect is in place, so that
+// applying it again has work to do. Pending means that Apply has nothing left
+// to do and only time is missing: a reboot, or a clock that is still
+// synchronizing. For every other control a check reports Applied when Apply
+// would change nothing.
 const (
 	NotApplied State = iota
 	Applied
 	Partial
+	Pending
 )
 
 // InputKind selects how an input is asked.

@@ -83,12 +83,25 @@ func checkAll(ctx context.Context, env *control.Env, sys *registry.System) (stat
 	return state, idle
 }
 
+// counts says whether a control in state st counts as applied. A control that
+// is applied in part has work left in an apply, so it does not count there, but
+// it counts in a revert, which undoes whatever is in place.
+func counts(st control.State, revert bool) bool {
+	switch st {
+	case control.Applied, control.Pending:
+		return true
+	case control.Partial:
+		return revert
+	}
+	return false
+}
+
 // negotiate repeats selection, questions and review until the user accepts the
 // review. A UI that has no review accepts at once. It returns a nil plan when
 // the user chose nothing. The returned inputs and answers belong to the
 // accepted pass.
 func negotiate(ctx context.Context, env *control.Env, ui UI, sys *registry.System, state map[string]control.State, idle map[string]string, revert bool) (*Plan, map[string]control.Values, map[string][]control.Input, error) {
-	applied := func(id string) bool { return state[id] == control.Applied || state[id] == control.Partial }
+	applied := func(id string) bool { return counts(state[id], revert) }
 	consent := func(extra []Dep) (bool, error) { return ui.ConfirmDependencies(ctx, extra, revert) }
 
 	var (
@@ -410,6 +423,8 @@ func choose(ctx context.Context, ui UI, sys *registry.System, state map[string]c
 				e.Disabled = revertDisabledReason(m)
 			case !revert && st == control.Applied:
 				e.Disabled = "already applied"
+			case !revert && st == control.Pending:
+				e.Disabled = "applied, waiting to take effect"
 			case !revert && idle[m.ID] != "":
 				e.Disabled = idle[m.ID]
 			}

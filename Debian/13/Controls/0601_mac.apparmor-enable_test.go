@@ -67,8 +67,8 @@ func TestAppArmorNeedsKernelParameters(t *testing.T) {
 	if !run.did("update-grub") {
 		t.Fatal("update-grub should run")
 	}
-	if state(t, c, env) != control.Partial {
-		t.Fatal("waiting for a reboot is partial")
+	if state(t, c, env) != control.Pending {
+		t.Fatal("waiting for a reboot is pending")
 	}
 
 	// After the reboot the kernel runs AppArmor.

@@ -124,7 +124,7 @@ func (s *swapfile) Apply(ctx context.Context, env *control.Env, in control.Value
 		return nil
 	}
 	if env.Rec.Has(swapID) {
-		return fmt.Errorf("this control already made a swap file. Revert it first to make another")
+		return s.repair(ctx, env)
 	}
 	if files.Exists(env.Path(path)) {
 		return fmt.Errorf("%s exists already. Choose another path", path)
@@ -188,6 +188,29 @@ func (s *swapfile) Apply(ctx context.Context, env *control.Env, in control.Value
 		return fmt.Errorf("swapon failed: %w: %s", err, strings.TrimSpace(string(out)))
 	}
 	env.Log.Infof("swap file %s, %s, is active and comes back after a reboot", path, in.String("size"))
+	return nil
+}
+
+// repair finishes a swap file that this control made earlier and that is no
+// longer fully in place: switched off, or readable by others. The size and the
+// path that were asked this time do not change the file that exists.
+func (s *swapfile) repair(ctx context.Context, env *control.Env) error {
+	path, _, _ := env.Rec.Get(swapID, "path")
+	fi, err := os.Stat(env.Path(path))
+	if err != nil {
+		return fmt.Errorf("the swap file %s is gone. Revert this control and apply it again", path)
+	}
+	if fi.Mode().Perm()&0o077 != 0 {
+		if err := os.Chmod(env.Path(path), 0o600); err != nil {
+			return err
+		}
+	}
+	if !contains(activeSwap(ctx, env), path) {
+		if out, err := env.Run.Run(ctx, "swapon", path); err != nil {
+			return fmt.Errorf("swapon failed: %w: %s", err, strings.TrimSpace(string(out)))
+		}
+	}
+	env.Log.Infof("swap file %s is active again", path)
 	return nil
 }
 

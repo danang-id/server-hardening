@@ -37,4 +37,5 @@ Run these before you open a pull request. They are the same checks that run on e
 - Range over a split with `strings.SplitSeq`.
 - Give each piece its own `WriteString` call instead of joining strings with `+` inside one.
 - Keep dependencies minimal. `DEPENDENCIES` lists the libraries and why each is there. The controls use only the Go standard library.
+- A control's check reports `Applied` when applying it again would change nothing, and `Partial` when applying it again has work to do. `Pending` is for a control that is done and only waits, for a reboot or for the clock to synchronize. An audit stays `Partial` while it has findings, so that picking it again checks them again. A test breaks the control, applies it again and expects `Applied`.
 - `hardening.sh` and `hardening.ps1` stay ASCII. `hardening.ps1` keeps Windows line endings, which `.gitattributes` sets.

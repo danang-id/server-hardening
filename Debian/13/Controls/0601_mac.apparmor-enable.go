@@ -52,7 +52,7 @@ func (a *apparmorEnable) Check(ctx context.Context, env *control.Env) (control.S
 	}
 	if !apparmorInKernel(ctx, env) {
 		if hasMarker(env, apparmorGrub, apparmorID) {
-			return control.Partial, nil // set, waiting for the reboot
+			return control.Pending, nil // set, waiting for the reboot
 		}
 		return control.NotApplied, nil
 	}

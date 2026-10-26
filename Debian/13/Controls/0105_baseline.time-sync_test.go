@@ -35,8 +35,8 @@ func TestTimeSyncChronyRoundTrip(t *testing.T) {
 		t.Fatal("synchronised clock should be applied")
 	}
 	run.out["timedatectl show -p NTPSynchronized --value"] = "no\n"
-	if state(t, c, env) != control.Partial {
-		t.Fatal("unsynchronised clock should be partial")
+	if state(t, c, env) != control.Pending {
+		t.Fatal("unsynchronised clock should be pending")
 	}
 	run.fail["systemctl is-active --quiet chrony"] = true
 	if state(t, c, env) != control.NotApplied {

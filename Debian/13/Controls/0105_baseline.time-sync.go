@@ -83,7 +83,7 @@ func (t *timeSync) Check(ctx context.Context, env *control.Env) (control.State, 
 	if err == nil && strings.TrimSpace(string(out)) == "yes" {
 		return control.Applied, nil
 	}
-	return control.Partial, nil // running, but the clock is not synchronized yet
+	return control.Pending, nil // running, but the clock is not synchronized yet
 }
 
 func (t *timeSync) Apply(ctx context.Context, env *control.Env, in control.Values) error {

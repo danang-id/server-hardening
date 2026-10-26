@@ -119,8 +119,8 @@ func TestNetworkdWaitsForRebootWhenNotRunning(t *testing.T) {
 	run.fail["systemctl is-active --quiet systemd-networkd"] = true
 	c := networkdControl()
 	must(t, c.Apply(ctx, env, staticIn()))
-	if state(t, c, env) != control.Partial {
-		t.Fatal("written but not running yet is partial")
+	if state(t, c, env) != control.Pending {
+		t.Fatal("written but not running yet is pending")
 	}
 }
 

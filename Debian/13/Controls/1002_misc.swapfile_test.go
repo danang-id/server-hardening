@@ -72,6 +72,16 @@ func TestSwapfileCreateAndRevert(t *testing.T) {
 		t.Fatal("a readable swap file is partial")
 	}
 
+	// Applying again finishes it: the file is locked down and switched on.
+	active["/swapfile"] = false
+	must(t, c.Apply(ctx, env, control.Values{"size": {"2G"}, "path": {"/swapfile"}}))
+	if fi, _ := os.Stat(env.Path("/swapfile")); fi.Mode().Perm() != 0o600 || !active["/swapfile"] {
+		t.Fatal("the swap file must be private and active again")
+	}
+	if state(t, c, env) != control.Applied {
+		t.Fatal("applied again")
+	}
+
 	must(t, c.Revert(ctx, env))
 	if active["/swapfile"] || read(t, env, "/etc/fstab") != stockFstab {
 		t.Fatal("swap off and fstab restored")
@@ -79,6 +89,18 @@ func TestSwapfileCreateAndRevert(t *testing.T) {
 	noFile(t, env, "/swapfile")
 	if env.Rec.Has(swapID) {
 		t.Fatal("record should be gone")
+	}
+}
+
+func TestSwapfileRepairNeedsTheFile(t *testing.T) {
+	ctx := context.Background()
+	env, _, _ := swapEnv(t, "20000000000")
+	c := swapControl()
+	in := control.Values{"size": {"2G"}, "path": {"/swapfile"}}
+	must(t, c.Apply(ctx, env, in))
+	must(t, os.Remove(env.Path("/swapfile")))
+	if err := c.Apply(ctx, env, in); err == nil || !strings.Contains(err.Error(), "gone") {
+		t.Fatalf("a missing file cannot be repaired: %v", err)
 	}
 }
 

@@ -292,7 +292,7 @@ func (n *networkd) Check(ctx context.Context, env *control.Env) (control.State, 
 	if systemd.IsActive(ctx, env, "systemd-networkd") && systemd.IsEnabled(ctx, env, "systemd-networkd") {
 		return control.Applied, nil
 	}
-	return control.Partial, nil // written, and waiting for the reboot
+	return control.Pending, nil // written, and waiting for the reboot
 }
 
 // oldNetworkFiles lists the files of the earlier network configuration.

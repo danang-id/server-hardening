@@ -252,7 +252,7 @@ var tagInfos = map[control.Tag]tagInfo{
 	control.TagIrreversible: {"⛔", "cannot be undone"},
 	control.TagReboot:       {"🔁", "needs a reboot"},
 	control.TagCompat:       {"🧩", "may break some software"},
-	control.TagExternal:     {"🌐", "downloads from outside Debian"},
+	control.TagExternal:     {"🌐", "downloads from outside the system's own repositories"},
 	control.TagInput:        {"📝", "asks you a question"},
 	control.TagReadonly:     {"🔍", "only checks"},
 }

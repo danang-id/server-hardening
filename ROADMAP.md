@@ -6,20 +6,20 @@ This file lists what Server Hardening does not do yet. Everything else is descri
 
 These checks are open for what already exists.
 
-- Run the tool on a real Debian 13 server or virtual machine: apply, check, revert, check, and compare the system before and after. The tests so far run against a simulated system.
+- Run the tool on a real Debian 13 server and a real AlmaLinux 10.2 server or virtual machine: apply, check, revert, check, and compare the system before and after. The tests so far run against a simulated system.
+- On AlmaLinux, check the things that were taken from documentation and not from a running system: the output of `dnf 4` commands such as `dnf remove --assumeno`, `dnf repoquery --unsatisfied` and `dnf needs-restarting -r`, the package names `python3-dnf-plugin-post-transaction-actions` and `fail2ban-selinux`, whether AIDE accepts the `@@include` line and reports the immutable flag, and the SELinux labels of the SSH port and of a swap file.
 - Automate that round trip in a container or virtual machine with systemd, so it runs in continuous integration.
 - Run `hardening.ps1` on a real Windows Server. It has only been written, not run.
 - Run `sh scripts/third-party-licenses.sh` against the real modules, then publish the first tag (`v0.1.0`) and check the release it builds.
-- Decide whether `Debian/13/GUIDE.md`, the manual guide from before the tool existed, stays in the repository.
+- Decide whether `Debian/13/GUIDE.md` and `AlmaLinux/10/GUIDE.md`, the manual guides from before the tool existed, stay in the repository.
 
 ## Systems
 
-The tool supports Debian 13. Linux and Windows have equal priority. macOS is not planned.
+The tool supports Debian 13 and AlmaLinux 10. Linux and Windows have equal priority. macOS is not planned.
 
 | System | Today | Wanted |
 |---|---|---|
 | Debian 12, 11 | Nothing | Controls for each version |
-| AlmaLinux 10 | Manual guide (`AlmaLinux/10/GUIDE.md`) | Port the guide to the interactive tool |
 | AlmaLinux 9, 8 | Nothing | Controls for each version |
 | Rocky Linux 10, 9 | Nothing | Controls for each version |
 | Ubuntu 26.04, 24.04, 22.04 LTS | Nothing | Controls for each version |
@@ -39,6 +39,11 @@ A new system needs:
 - **`baseline.time-sync`** adds the servers you enter to the pool that Debian's `chrony` configuration lists. Decide whether it should replace the pool instead, and check the choice on a test VM.
 - **`misc.notify`** sends to a webhook only. Email delivery is not part of it.
 - **Automatic undo** for lockout controls needs systemd. On other systems the tool warns you and only the running session can undo the change.
+
+- **AlmaLinux 10 has no `network.systemd-networkd` and no `network.dns-resolver`.** The Debian controls move the network configuration to `systemd-networkd` and `systemd-resolved`, and AlmaLinux uses `NetworkManager`. Decide whether to write versions for `NetworkManager`.
+- **AlmaLinux and Debian share the mechanics but not the controls.** The helpers for sysctl, SSH drop-ins, accounts, mounts, firewall rules, `dnf` and records live in `internal/`, but many controls that are the same on both systems exist twice, once per system folder. Moving more of their logic into `internal/` would make a fix land once.
+- **`ldp.aide-dnf-hook`** can only update the AIDE baseline after a transaction, because `dnf 4` has no hook that runs before one. The Debian hook can also check before. Revisit this when AlmaLinux moves to `dnf 5`.
+- **`baseline.dnf-mirror`** takes any HTTPS mirror and has no preset for a hosting provider. Add presets only if there is a provider whose mirror layout is worth knowing.
 
 ## Not planned
 

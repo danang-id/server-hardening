@@ -234,12 +234,16 @@ while read -r s_id s_ver s_archs; do
     done
     if [ "$s_id" = "$os_id" ]; then
         os_known=1
-        if [ "$s_ver" = "$os_version" ]; then
-            ver_known=1
-            for a in $s_archs; do
-                if [ "$a" = "$arch" ]; then arch_ok=1; fi
-            done
-        fi
+        # The version in SUPPORTED is the major version: "10" covers 10.1, 10.2
+        # and every other minor release, as os-release writes them.
+        case "$os_version" in
+            "$s_ver"|"$s_ver".*)
+                ver_known=1
+                for a in $s_archs; do
+                    if [ "$a" = "$arch" ]; then arch_ok=1; fi
+                done
+                ;;
+        esac
     fi
 done < "$work/SUPPORTED"
 

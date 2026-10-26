@@ -9,13 +9,14 @@ import (
 	"os"
 	"strings"
 
+	"github.com/danang-id/server-hardening/internal/accounts"
 	"github.com/danang-id/server-hardening/internal/apt"
 	"github.com/danang-id/server-hardening/internal/control"
 	"github.com/danang-id/server-hardening/internal/files"
 )
 
 const (
-	sudoID     = "aaa.sudo-policy"
+	sudoID     = accounts.SudoID
 	sudoFile   = "/etc/sudoers.d/99-server-hardening"
 	sudoMarker = "# Managed by github.com/danang-id/server-hardening (aaa.sudo-policy)"
 	// sudo skips files in sudoers.d whose name contains a dot. That makes it
@@ -39,9 +40,9 @@ func init() {
 }
 
 const (
-	policyOwn  = "own"
-	policyNone = "none"
-	policyRoot = "root"
+	policyOwn  = accounts.PolicyOwn
+	policyNone = accounts.PolicyNone
+	policyRoot = accounts.PolicyRoot
 )
 
 func (s *sudoPolicy) Inputs(context.Context, *control.Env) ([]control.Input, error) {

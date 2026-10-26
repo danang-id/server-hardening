@@ -19,6 +19,7 @@ import (
 	"github.com/danang-id/server-hardening/internal/registry"
 
 	// Every system is linked in so it can be checked.
+	_ "github.com/danang-id/server-hardening/AlmaLinux/10/Controls"
 	_ "github.com/danang-id/server-hardening/Debian/13/Controls"
 )
 

@@ -53,7 +53,7 @@ func TestAssess(t *testing.T) {
 
 func TestReasonsError(t *testing.T) {
 	err := reasonsError([]string{"Debian 9 is not supported operating system version", "RISC-V is not supported processor architecture"})
-	want := "Debian 9 is not supported operating system version; RISC-V is not supported processor architecture. This tool hardens Debian 13 servers only, for now"
+	want := "Debian 9 is not supported operating system version; RISC-V is not supported processor architecture. This tool hardens Debian 13 and AlmaLinux 10 servers only, for now"
 	if err.Error() != want {
 		t.Fatal(err)
 	}

@@ -20,7 +20,9 @@ type System struct {
 	// writes it in ID ("debian"). It tells a version that is not supported
 	// apart from an operating system that is not supported at all.
 	OSID string
-	// Version is the version of that system, as os-release writes VERSION_ID ("13").
+	// Version is the major version of that system ("13"). os-release may write
+	// a minor release too, as in VERSION_ID "10.2": hardening.sh takes the
+	// version as the part before the first dot, and so must Match.
 	Version string
 	ID      string // "debian-13"
 	Name    string // "Debian 13 (Trixie)"

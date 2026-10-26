@@ -2,7 +2,7 @@
 
 General-purpose security hardening for freshly provisioned servers. You pick what to apply from an interactive menu. Nothing is mandatory, and the tool assumes nothing is installed on the server.
 
-> **Status:** Debian 13 is supported. Other systems and features are listed in the [roadmap](ROADMAP.md).
+> **Status:** Debian 13 and AlmaLinux 10 are supported. Other systems and features are listed in the [roadmap](ROADMAP.md).
 
 ## Quick start
 
@@ -238,8 +238,8 @@ This order is fixed. A user's selection only filters it, and dependencies are ad
         <h2>AlmaLinux</h2>
       </td>
       <td style="min-width: 500px">
-        <b><a href="AlmaLinux/10/GUIDE.md">AlmaLinux 10.1+ (Heliotrope Lion)</a></b>
-        <br/> <b>Manual guide</b> | <a href="AlmaLinux/10/CHANGELOG.md">CHANGELOG</a>
+        <b><a href="AlmaLinux/10/REFERENCES.md">AlmaLinux 10.x (Heliotrope Lion), tested on 10.2</a></b>
+        <br/> <b>Interactive tool</b> | <a href="AlmaLinux/10/CHANGELOG.md">CHANGELOG</a>
       </td>
     </tr>
   </tbody>

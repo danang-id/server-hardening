@@ -14,6 +14,7 @@ import (
 
 	"github.com/danang-id/server-hardening/internal/control"
 	"github.com/danang-id/server-hardening/internal/files"
+	fwrules "github.com/danang-id/server-hardening/internal/firewall"
 	"github.com/danang-id/server-hardening/internal/systemd"
 )
 
@@ -149,23 +150,9 @@ func portSetElsewhere(env *control.Env) (string, error) {
 	return "", nil
 }
 
-func joinInts(ns []int) string {
-	var s []string
-	for _, n := range ns {
-		s = append(s, strconv.Itoa(n))
-	}
-	return strings.Join(s, ",")
-}
+func joinInts(ns []int) string { return fwrules.JoinInts(ns) }
 
-func splitInts(s string) []int {
-	var out []int
-	for f := range strings.SplitSeq(s, ",") {
-		if n, err := strconv.Atoi(strings.TrimSpace(f)); err == nil {
-			out = append(out, n)
-		}
-	}
-	return out
-}
+func splitInts(s string) []int { return fwrules.SplitInts(s) }
 
 // Firewall
 

@@ -17,12 +17,12 @@ func rulesIn(text string) control.Values { return control.Values{"rules": {text}
 
 func TestParsePortRule(t *testing.T) {
 	good := map[string]portRule{
-		"443":                           {"443", "tcp", ""},
-		"443/tcp":                       {"443", "tcp", ""},
-		"51820/udp from 203.0.113.0/24": {"51820", "udp", "203.0.113.0/24"},
-		"8000-8010/tcp":                 {"8000-8010", "tcp", ""},
-		"5432 from 2001:db8::/32":       {"5432", "tcp", "2001:db8::/32"},
-		"22/tcp from 198.51.100.7":      {"22", "tcp", "198.51.100.7"},
+		"443":                           {Port: "443", Proto: "tcp", Source: ""},
+		"443/tcp":                       {Port: "443", Proto: "tcp", Source: ""},
+		"51820/udp from 203.0.113.0/24": {Port: "51820", Proto: "udp", Source: "203.0.113.0/24"},
+		"8000-8010/tcp":                 {Port: "8000-8010", Proto: "tcp", Source: ""},
+		"5432 from 2001:db8::/32":       {Port: "5432", Proto: "tcp", Source: "2001:db8::/32"},
+		"22/tcp from 198.51.100.7":      {Port: "22", Proto: "tcp", Source: "198.51.100.7"},
 	}
 	for in, want := range good {
 		got, err := parsePortRule(in)

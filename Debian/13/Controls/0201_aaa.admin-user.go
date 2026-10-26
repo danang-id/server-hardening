@@ -7,15 +7,15 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"regexp"
 	"strings"
 
+	"github.com/danang-id/server-hardening/internal/accounts"
 	"github.com/danang-id/server-hardening/internal/apt"
 	"github.com/danang-id/server-hardening/internal/control"
 )
 
 const (
-	adminUserID = "aaa.admin-user"
+	adminUserID = accounts.AdminUserID
 	// homeMode is the mode of the home directory of an account this control creates.
 	homeMode os.FileMode = 0o700
 )
@@ -34,19 +34,7 @@ func init() {
 	}}})
 }
 
-// Debian's own rule for new names is a lowercase letter first, then letters,
-// digits, "_" and "-". 32 characters is the limit of the system.
-var userName = regexp.MustCompile(`^[a-z][a-z0-9_-]{0,31}$`)
-
-func validUserName(s string) error {
-	if s == "root" {
-		return fmt.Errorf("pick a name other than root")
-	}
-	if !userName.MatchString(s) {
-		return fmt.Errorf("use lowercase letters, digits, - and _, starting with a letter (at most 32 characters)")
-	}
-	return nil
-}
+func validUserName(s string) error { return accounts.ValidUserName(s) }
 
 func (a *adminUser) Inputs(context.Context, *control.Env) ([]control.Input, error) {
 	// The user who started the tool, when it was started with sudo.

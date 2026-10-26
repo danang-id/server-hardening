@@ -57,5 +57,5 @@ func assess(goos string, m sysdetect.Machine, osr map[string]string, osrErr erro
 // reasonsError is the reasons as an error, for a run without the full-screen
 // interface.
 func reasonsError(reasons []string) error {
-	return errors.New(strings.Join(reasons, "; ") + ". This tool hardens Debian 13 servers only, for now")
+	return errors.New(strings.Join(reasons, "; ") + ". This tool hardens Debian 13 and AlmaLinux 10 servers only, for now")
 }

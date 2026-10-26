@@ -194,5 +194,5 @@ func fstabEntryFor(env *control.Env, mnt string) (string, bool) {
 		return "", false
 	}
 	l, ok := fstabHas(c, mnt)
-	return strings.TrimSpace(l.raw), ok
+	return strings.TrimSpace(l.Raw), ok
 }

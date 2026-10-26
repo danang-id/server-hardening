@@ -33,29 +33,6 @@ func init() {
 
 func authorizedKeysFile(a account) string { return filepath.Join(a.Home, ".ssh", "authorized_keys") }
 
-// validateKeyLines checks the pasted text and returns the keys.
-func validateKeyLines(text string) ([]pubKey, error) {
-	if strings.Contains(text, "PRIVATE KEY") {
-		return nil, fmt.Errorf("that is a private key. Never paste it. Paste the public key (the .pub file)")
-	}
-	var keys []pubKey
-	for i, l := range strings.Split(text, "\n") {
-		l = strings.TrimSpace(l)
-		if l == "" || strings.HasPrefix(l, "#") {
-			continue
-		}
-		k, err := parsePublicKey(l)
-		if err != nil {
-			return nil, fmt.Errorf("line %d: %w", i+1, err)
-		}
-		keys = append(keys, k)
-	}
-	if len(keys) == 0 {
-		return nil, fmt.Errorf("enter at least one public key")
-	}
-	return keys, nil
-}
-
 // suggestedKeys finds the keys the user most likely logged in with: those of
 // the account that started the tool, or else root's.
 func suggestedKeys(env *control.Env) string {

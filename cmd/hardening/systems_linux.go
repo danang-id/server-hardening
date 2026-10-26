@@ -6,5 +6,6 @@ package main
 // Every Linux system's controls are linked into the Linux binary. Each
 // package registers its System when it is imported.
 import (
+	_ "github.com/danang-id/server-hardening/AlmaLinux/10/Controls"
 	_ "github.com/danang-id/server-hardening/Debian/13/Controls"
 )

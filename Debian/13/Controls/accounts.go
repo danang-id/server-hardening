@@ -167,6 +167,27 @@ func adminAccounts(env *control.Env) ([]string, error) {
 	return out, nil
 }
 
+// plannedAdmin returns the name of the administrator account that this run is
+// about to create, taken from the answer to aaa.admin-user, or "" when that
+// control is not part of the run. The questions come before anything runs, so
+// the account is not in /etc/passwd yet when they are built.
+func plannedAdmin(env *control.Env) string {
+	name := strings.TrimSpace(env.Answered[adminUserID].String("username"))
+	if validUserName(name) != nil {
+		return ""
+	}
+	return name
+}
+
+// expectedAdmins lists the administrator accounts that will exist once the run
+// has finished: the one it is about to create, or else those that exist now.
+func expectedAdmins(env *control.Env) ([]string, error) {
+	if p := plannedAdmin(env); p != "" {
+		return []string{p}, nil
+	}
+	return adminAccounts(env)
+}
+
 // oneAdmin returns the single administrator account that later controls (SSH
 // keys, SSH settings) work for.
 func oneAdmin(env *control.Env) (account, error) {

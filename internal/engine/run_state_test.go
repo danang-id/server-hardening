@@ -147,3 +147,33 @@ func TestRevertOffersPartialAndPendingControls(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 }
+
+// asker is a control whose questions depend on an earlier answer.
+type asker struct {
+	rec
+	seen *string
+}
+
+func (a *asker) Inputs(_ context.Context, e *control.Env) ([]control.Input, error) {
+	*a.seen = e.Answered["baseline.first"].String("v")
+	return []control.Input{{Key: "v", Label: "v", Default: "d"}}, nil
+}
+
+// A question can see the answers to the questions before it, and the engine
+// takes them away again once the questions are over.
+func TestLaterQuestionsSeeEarlierAnswers(t *testing.T) {
+	var log []string
+	var seen string
+	sys := build(&log, meta("baseline.first", control.Baseline, 1, true, control.TagInput))
+	sys.Add(&asker{rec: rec{Base: control.Base{M: meta("misc.second", control.Misc, 1, true, control.TagInput)}, log: &log}, seen: &seen})
+	e := env(false)
+	if err := Run(context.Background(), e, &script{preset: Recommended}, sys, false); err != nil {
+		t.Fatal(err)
+	}
+	if seen != "answer-baseline.first" {
+		t.Fatalf("the second question saw %q", seen)
+	}
+	if e.Answered != nil {
+		t.Fatal("the answers must not outlive the questions")
+	}
+}

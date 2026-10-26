@@ -48,7 +48,7 @@ func parseUserList(s string) []string {
 func (a *sshAllowUsers) Inputs(_ context.Context, env *control.Env) ([]control.Input, error) {
 	// Suggest the administrator account, or the one that started the tool.
 	def := ""
-	if admins, err := adminAccounts(env); err == nil && len(admins) > 0 {
+	if admins, err := expectedAdmins(env); err == nil && len(admins) > 0 {
 		def = strings.Join(admins, " ")
 	} else if u := os.Getenv("SUDO_USER"); u != "" && u != "root" {
 		def = u

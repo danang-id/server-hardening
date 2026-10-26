@@ -35,7 +35,7 @@ func init() {
 var groupName = regexp.MustCompile(`^[a-z_][a-z0-9_-]{0,31}$`)
 
 func (h *procHidepid) Inputs(_ context.Context, env *control.Env) ([]control.Input, error) {
-	admins, _ := adminAccounts(env)
+	admins, _ := expectedAdmins(env)
 	return []control.Input{
 		{
 			Key: "level", Label: "What ordinary users see of other users' processes", Kind: control.Choice, Default: "invisible",

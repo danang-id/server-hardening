@@ -48,10 +48,13 @@ func (o *ohMyZsh) Inputs(_ context.Context, env *control.Env) ([]control.Input, 
 	if err != nil {
 		return nil, err
 	}
-	admins, _ := adminAccounts(env)
+	admins, _ := expectedAdmins(env)
 	var opts []control.Option
 	for _, a := range accts {
 		opts = append(opts, control.Option{Value: a.Name, Label: a.Name, Help: "home: " + a.Home})
+	}
+	if p := plannedAdmin(env); p != "" && !hasOption(opts, p) {
+		opts = append(opts, control.Option{Value: p, Label: p + " (to be created)", Help: "the administrator account that this run creates"})
 	}
 	in := []control.Input{}
 	if len(opts) > 0 {

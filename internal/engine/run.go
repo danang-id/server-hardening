@@ -178,6 +178,8 @@ func askInputs(ctx context.Context, env *control.Env, ui UI, plan *Plan, session
 	if revert {
 		return answers, asked, false, nil
 	}
+	env.Answered = answers
+	defer func() { env.Answered = nil }()
 	for _, c := range plan.Items {
 		id := c.Meta().ID
 		in, err := c.Inputs(ctx, env)

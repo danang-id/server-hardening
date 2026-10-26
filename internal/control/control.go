@@ -275,6 +275,12 @@ type Env struct {
 	Log    Logger
 	Guard  Guard // nil when no automatic undo is available
 	DryRun bool
+
+	// Answered holds the answers given so far in this run, by control ID. The
+	// engine fills it while it asks the questions, which all come before any
+	// control runs, so that a question can offer what an earlier control is about
+	// to create. It is nil at any other time.
+	Answered map[string]Values
 }
 
 // Path maps an absolute system path below Root.

@@ -49,12 +49,22 @@ func loginAccounts(env *control.Env) ([]account, error) {
 	return out, nil
 }
 
+// hasOption reports whether an option with the value is in the list.
+func hasOption(opts []control.Option, value string) bool {
+	for _, o := range opts {
+		if o.Value == value {
+			return true
+		}
+	}
+	return false
+}
+
 func (z *zsh) Inputs(_ context.Context, env *control.Env) ([]control.Input, error) {
 	accts, err := loginAccounts(env)
 	if err != nil {
 		return nil, err
 	}
-	admins, _ := adminAccounts(env)
+	admins, _ := expectedAdmins(env)
 	var opts []control.Option
 	for _, a := range accts {
 		help := "login shell now: " + a.Shell
@@ -62,6 +72,9 @@ func (z *zsh) Inputs(_ context.Context, env *control.Env) ([]control.Input, erro
 			help += ". A working root shell matters most when something is broken"
 		}
 		opts = append(opts, control.Option{Value: a.Name, Label: a.Name, Help: help})
+	}
+	if p := plannedAdmin(env); p != "" && !hasOption(opts, p) {
+		opts = append(opts, control.Option{Value: p, Label: p + " (to be created)", Help: "the administrator account that this run creates"})
 	}
 	if len(opts) == 0 {
 		return nil, nil

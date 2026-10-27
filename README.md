@@ -26,7 +26,7 @@ sh hardening.sh
 
 The entry script shows your operating system, kernel and processor, and whether the tool supports them. If not, it says why and stops without downloading anything. If so, it downloads the matching binary from the latest release with a progress bar, checks it against the checksum list of that release, explains why administrator access is needed, waits for you to press Enter, and starts the tool. What is supported is not written in the script: the release carries a `SUPPORTED` file, so the script does not change when support grows. A machine that is not supported ends the script with exit status 1. The binary runs from a temporary directory. When `/tmp` is mounted `noexec`, which the tool's own `tmp-hardening` control does, the script tries `/var/tmp`, `/dev/shm` and your home directory, or the directory in `TMPDIR`, until one allows running programs. Arguments go to the tool: `sh hardening.sh --dry-run`, or `curl -fsSL <url> | sh -s -- --dry-run`. The checksum catches a broken download. It does not protect you from a tampered release, which is one more reason to read the script first.
 
-Take a snapshot or backup of the server before you run it.
+Take a snapshot or backup of the server before you run it, and make sure you can reach the server through your provider's web console. If a change cuts your connection, that is the way back in. Each system has an `OPERATIONS.md` with what to prepare, how to recover from a lockout, and a weekly and monthly routine ([Debian 13](Debian/13/OPERATIONS.md), [AlmaLinux 10](AlmaLinux/10/OPERATIONS.md)).
 
 ## How it works
 
@@ -218,7 +218,6 @@ This order is fixed. A user's selection only filters it, and dependencies are ad
 | Status | Meaning |
 |---|---|
 | **Interactive tool** | The tool supports the system. `REFERENCES.md` is the control reference. |
-| **Manual guide** | Only a step-by-step guide (`GUIDE.md`) exists. The tool does not support the system. |
 
 <table>
   <tbody>
@@ -259,7 +258,14 @@ One binary per operating system and CPU contains every supported version of that
 
 ## Out of scope
 
-This is general-purpose hardening. Server roles (web, mail, database) and private networking such as Tailscale are not part of it.
+This is general-purpose hardening. These are not part of it:
+
+- Server roles and service-specific hardening (web, mail, database).
+- Private networking such as Tailscale.
+- Container and Docker hardening.
+- Your provider's own security settings, such as security groups.
+- Changing the partition layout of a running system.
+- Port knocking.
 
 ## Roadmap
 
@@ -272,7 +278,7 @@ This is general-purpose hardening. Server roles (web, mail, database) and privat
 - `DEPENDENCIES`: the Go libraries used and why
 - `LICENSE`: the GNU General Public License, version 3
 - `CONTRIBUTING.md`: how to contribute, and the sign-off every commit needs
-- `Debian/13/GUIDE.md` and `AlmaLinux/10/GUIDE.md`: the manual step-by-step guides, written before the tool existed
+- `Debian/13/OPERATIONS.md` and `AlmaLinux/10/OPERATIONS.md`: what to prepare, how to recover from a lockout, and the weekly and monthly routine for each system
 
 ## License
 

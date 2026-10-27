@@ -138,14 +138,16 @@ func ValidateKeyLines(text string) ([]PubKey, error) {
 		return nil, fmt.Errorf("that is a private key. Never paste it. Paste the public key (the .pub file)")
 	}
 	var keys []PubKey
-	for i, l := range strings.Split(text, "\n") {
+	n := 0
+	for l := range strings.SplitSeq(text, "\n") {
+		n++
 		l = strings.TrimSpace(l)
 		if l == "" || strings.HasPrefix(l, "#") {
 			continue
 		}
 		k, err := ParsePublicKey(l)
 		if err != nil {
-			return nil, fmt.Errorf("line %d: %w", i+1, err)
+			return nil, fmt.Errorf("line %d: %w", n, err)
 		}
 		keys = append(keys, k)
 	}

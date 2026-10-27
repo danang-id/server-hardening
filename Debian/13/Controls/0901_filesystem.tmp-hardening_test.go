@@ -83,6 +83,31 @@ func TestTmpNotTmpfsEnablesTheMount(t *testing.T) {
 	}
 }
 
+// /tmp is a plain directory on the root file system (AlmaLinux). findmnt /tmp
+// fails there, so the control must ask for the file system that holds it.
+func TestTmpThatIsNoMountPointGetsTheMount(t *testing.T) {
+	env, _, s, m := mountEnv(t)
+	delete(m.opts, "/tmp")
+	delete(m.fstype, "/tmp")
+	m.opts["/"] = "rw,relatime,seclabel"
+	m.fstype["/"] = "xfs"
+	var warned []string
+	env.Log = &memLog{warns: &warned}
+	c := tmpControl()
+	must(t, c.Apply(context.Background(), env, control.Values{"size": {"50%"}, "noexec": {"yes"}}))
+	wantContains(t, read(t, env, tmpDropIn), "noexec")
+	if !s.enabled[tmpUnit] || !s.active[tmpUnit] {
+		t.Fatal("tmp.mount should be enabled and started")
+	}
+	if !strings.Contains(strings.Join(warned, "\n"), "xfs") {
+		t.Fatalf("the person must be told that /tmp is on xfs: %v", warned)
+	}
+	must(t, c.Revert(context.Background(), env))
+	if s.enabled[tmpUnit] || s.active[tmpUnit] {
+		t.Fatal("the mount this control turned on must be turned off again")
+	}
+}
+
 func TestTmpRefusesWhenFstabHasAnEntry(t *testing.T) {
 	env, _, _, _ := mountEnv(t)
 	writeFile(t, env, "/etc/fstab", "UUID=1 / ext4 defaults 0 1\ntmpfs /tmp tmpfs defaults 0 0\n")

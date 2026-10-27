@@ -111,3 +111,20 @@ func TestAuditdRevertWhenTheServiceCannotBeStopped(t *testing.T) {
 		t.Fatal("record should be gone")
 	}
 }
+
+// On AlmaLinux "systemctl reload auditd" fails with "Job type reload is not
+// applicable". The daemon must get SIGHUP instead, with no warning.
+func TestAuditdReloadFallsBackToSIGHUP(t *testing.T) {
+	env, run, s := sysEnv(t)
+	s.active[auditdUnit] = true
+	run.fail["systemctl reload auditd.service"] = true
+	var warned []string
+	env.Log = &memLog{warns: &warned}
+	must(t, startOrReloadAuditd(context.Background(), env))
+	if !run.did("systemctl kill --kill-whom=main --signal=HUP auditd.service") {
+		t.Fatalf("auditd must get SIGHUP: %v", run.calls)
+	}
+	if len(warned) != 0 {
+		t.Fatalf("no warning when the signal worked: %v", warned)
+	}
+}

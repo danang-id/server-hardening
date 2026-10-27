@@ -1,0 +1,2 @@
+baseline.auto-security-updates.failed warning Automatic security updates failed apt-daily-upgrade.service ended with exit-code (exit status 100). Look at: journalctl -u apt-daily-upgrade.service
+baseline.auto-security-updates.reboot-required info A reboot is needed after updates Packages: libc6 linux-image-6.12 

@@ -1,5 +1,13 @@
 # Changelog (AlmaLinux-10)
 
+## Version: AlmaLinux-10-Rev-3
+27 October 2026
+
+* **Crypto policy and `dnf`.** `system-kernel.crypto-policy` reads the repository metadata with `dnf makecache --refresh` before and after the change. If `dnf` worked before and fails after, the old policy comes back and the control says why. A real server showed the problem: under `FUTURE`, `dnf` refused a mirror whose certificate has a 2048-bit RSA key, and every later `dnf` step of the run failed. (27 October 2026, Danang Galuh Tegar Prasetyo)
+* **/tmp.** `filesystem.tmp-hardening` works when `/tmp` is a plain directory on the root file system, as it is on AlmaLinux. It asked for the mount options of `/tmp` and failed. It now reads the file system that holds `/tmp`, and turns on the systemd `/tmp` mount. (27 October 2026, Danang Galuh Tegar Prasetyo)
+* **Default umask.** `filesystem.default-umask` no longer reads the Debian file `/etc/pam.d/common-session`. It sets `UMASK` in `/etc/login.defs` and in `/etc/profile.d/zz-server-hardening-umask.sh`, and warns when no PAM session runs `pam_umask`. It does not edit the PAM files that `authselect` generates. (27 October 2026, Danang Galuh Tegar Prasetyo)
+* **Audit daemon.** When `systemctl reload auditd` is not possible, the control sends SIGHUP to the daemon, and warns only if that fails too. (27 October 2026, Danang Galuh Tegar Prasetyo)
+
 ## Version: AlmaLinux-10-Rev-2
 27 October 2026
 

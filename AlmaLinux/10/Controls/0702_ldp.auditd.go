@@ -107,11 +107,22 @@ func (a *auditd) Apply(ctx context.Context, env *control.Env, in control.Values)
 	return startOrReloadAuditd(ctx, env)
 }
 
+// reloadAuditd makes the running daemon read auditd.conf again. The unit has no
+// reload action ("Job type reload is not applicable"), but the daemon reloads
+// its configuration on SIGHUP.
+func reloadAuditd(ctx context.Context, env *control.Env) error {
+	if _, err := env.Run.Run(ctx, "systemctl", "reload", auditdUnit); err == nil {
+		return nil
+	}
+	_, err := env.Run.Run(ctx, "systemctl", "kill", "--kill-whom=main", "--signal=HUP", auditdUnit)
+	return err
+}
+
 // startOrReloadAuditd starts the daemon, or makes a running one read its
 // configuration again.
 func startOrReloadAuditd(ctx context.Context, env *control.Env) error {
 	if systemd.IsActive(ctx, env, auditdUnit) {
-		if _, err := env.Run.Run(ctx, "systemctl", "reload", auditdUnit); err != nil {
+		if err := reloadAuditd(ctx, env); err != nil {
 			env.Log.Warnf("auditd could not reload its configuration (%v). It uses the new values after its next restart", err)
 		}
 		return systemd.Enable(ctx, env, auditdUnit)
@@ -157,7 +168,7 @@ func restoreAuditdUnit(ctx context.Context, env *control.Env) error {
 	case ac == "yes" && !running:
 		return systemd.Start(ctx, env, auditdUnit)
 	case ac == "yes":
-		if _, err := env.Run.Run(ctx, "systemctl", "reload", auditdUnit); err != nil {
+		if err := reloadAuditd(ctx, env); err != nil {
 			env.Log.Warnf("auditd could not reload its configuration (%v). It uses the old values until its next restart", err)
 		}
 	case running:

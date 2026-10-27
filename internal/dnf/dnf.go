@@ -43,6 +43,13 @@ func MakeCache(ctx context.Context, env *control.Env) error {
 	return run(ctx, env, "makecache")
 }
 
+// CheckRepos reads the metadata of every enabled repository again, ignoring
+// the cache. It fails when a repository cannot be reached or its certificate is
+// refused.
+func CheckRepos(ctx context.Context, env *control.Env) error {
+	return run(ctx, env, "makecache", "--refresh")
+}
+
 // CleanAll forgets the cached metadata, so the next command reads the
 // repositories again.
 func CleanAll(ctx context.Context, env *control.Env) error {

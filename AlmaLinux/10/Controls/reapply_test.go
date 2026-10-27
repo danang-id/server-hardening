@@ -36,9 +36,10 @@ func TestUmaskReapplyAfterLoginDefsChanged(t *testing.T) {
 	}
 	reapply(t, c, env, in)
 	must(t, c.Revert(ctx, env))
-	if read(t, env, loginDefs) != stockDefs || read(t, env, pamSession) != stockSession {
+	if read(t, env, loginDefs) != stockDefs {
 		t.Fatal("revert must still restore what was there before the first run")
 	}
+	noFile(t, env, umaskProfile)
 }
 
 func TestAuditdReapplyAfterConfigChanged(t *testing.T) {

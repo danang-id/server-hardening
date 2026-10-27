@@ -97,7 +97,7 @@ func (t *tmpHardening) Apply(ctx context.Context, env *control.Env, in control.V
 		return err
 	}
 	fsType := "tmpfs"
-	if out, err := env.Run.Run(ctx, "findmnt", "-n", "-o", "FSTYPE", "/tmp"); err == nil {
+	if out, err := env.Run.Run(ctx, "findmnt", "-n", "-o", "FSTYPE", "-T", "/tmp"); err == nil {
 		fsType = strings.TrimSpace(string(out))
 	}
 	if !env.Rec.Has(tmpID) {

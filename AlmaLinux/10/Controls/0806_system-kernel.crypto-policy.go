@@ -82,6 +82,17 @@ func (c *cryptoPolicy) Apply(ctx context.Context, env *control.Env, in control.V
 	if strings.HasPrefix(before, "FIPS") {
 		return fmt.Errorf("the system is in FIPS mode (%s). Leave FIPS mode with fips-mode-setup first. This control does not change it", before)
 	}
+	// A stricter policy can make dnf refuse the HTTPS certificate of a mirror, for
+	// example a 2048-bit RSA key under FUTURE. Learn first whether dnf works now,
+	// so that a failure afterwards is known to come from the policy.
+	reposWorked := false
+	if before != policy {
+		if err := dnf.CheckRepos(ctx, env); err != nil {
+			env.Log.Warnf("dnf cannot read its repositories now, so the policy cannot be checked against them: %v", err)
+		} else {
+			reposWorked = true
+		}
+	}
 	fresh := !env.Rec.Has(cryptoPolicyID)
 	// A failed first run leaves no record behind. A re-run keeps the old one.
 	fail := func(err error) error {
@@ -111,6 +122,12 @@ func (c *cryptoPolicy) Apply(ctx context.Context, env *control.Env, in control.V
 	if err := sshdValidate(ctx, env); err != nil {
 		_, _ = env.Run.Run(ctx, "update-crypto-policies", "--set", before)
 		return fail(fmt.Errorf("sshd refuses its configuration under the policy %s, so the old policy %s is back: %w", policy, before, err))
+	}
+	if reposWorked {
+		if err := dnf.CheckRepos(ctx, env); err != nil {
+			_, _ = env.Run.Run(ctx, "update-crypto-policies", "--set", before)
+			return fail(fmt.Errorf("dnf can no longer read its repositories under the policy %s, so the old policy %s is back. A mirror whose certificate has a weak key is refused under a strict policy: choose another mirror (baseline.dnf-mirror) or a milder policy: %w", policy, before, err))
+		}
 	}
 	if err := sshdReload(ctx, env); err != nil {
 		return fail(err)

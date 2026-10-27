@@ -162,6 +162,9 @@ func (m *mountSim) hook(f *fakeRunner, cmd string) {
 	switch {
 	case strings.HasPrefix(cmd, "findmnt -n -o OPTIONS "):
 		mnt := fields[len(fields)-1]
+		if _, ok := m.opts[mnt]; !ok && strings.Contains(cmd, " -T ") {
+			mnt = "/" // a directory that is no mount point: the file system it is on
+		}
 		if o, ok := m.opts[mnt]; ok {
 			f.out[cmd] = o + "\n"
 			delete(f.fail, cmd)
@@ -169,7 +172,11 @@ func (m *mountSim) hook(f *fakeRunner, cmd string) {
 			f.fail[cmd] = true
 		}
 	case strings.HasPrefix(cmd, "findmnt -n -o FSTYPE "):
-		f.out[cmd] = m.fstype[fields[len(fields)-1]] + "\n"
+		t := m.fstype[fields[len(fields)-1]]
+		if t == "" && strings.Contains(cmd, " -T ") {
+			t = m.fstype["/"]
+		}
+		f.out[cmd] = t + "\n"
 	case len(fields) == 4 && fields[0] == "mount" && fields[1] == "-o" && strings.HasPrefix(fields[2], "remount"):
 		if f.fail[cmd] {
 			return

@@ -138,3 +138,47 @@ func TestCryptoPolicyFailedSetLeavesNoSetting(t *testing.T) {
 		t.Fatalf("policy: %s", *cur)
 	}
 }
+
+// Under FUTURE dnf refused a mirror whose certificate has a 2048-bit RSA key,
+// and every later dnf step of the run failed. The control now puts the old
+// policy back when dnf stops working.
+func TestCryptoPolicyUndoneWhenDnfCannotReachItsMirror(t *testing.T) {
+	env, run, _, cur := cryptoEnv(t, "DEFAULT")
+	prev := run.hook
+	run.hook = func(f *fakeRunner, cmd string) {
+		prev(f, cmd)
+		if cmd == "dnf -y makecache --refresh" {
+			f.fail[cmd] = *cur == "FUTURE"
+		}
+	}
+	c := cryptoControl()
+	err := c.Apply(context.Background(), env, control.Values{"policy": {"FUTURE"}})
+	if err == nil || !strings.Contains(err.Error(), "dnf can no longer read its repositories") {
+		t.Fatalf("want a message about dnf, got %v", err)
+	}
+	if *cur != "DEFAULT" {
+		t.Fatalf("the old policy must be back: %s", *cur)
+	}
+	if env.Rec.Has(cryptoPolicyID) {
+		t.Fatal("a refused change must leave no record")
+	}
+	if run.did("systemctl reload sshd") {
+		t.Fatal("sshd must not be reloaded for a policy that was undone")
+	}
+	// A milder policy keeps working.
+	must(t, c.Apply(context.Background(), env, control.Values{"policy": {"DEFAULT:NO-SHA1"}}))
+	if *cur != "DEFAULT:NO-SHA1" {
+		t.Fatalf("policy: %s", *cur)
+	}
+}
+
+// If dnf did not work before the change either, the policy is not to blame and
+// the change stays.
+func TestCryptoPolicyKeptWhenDnfWasAlreadyBroken(t *testing.T) {
+	env, run, _, cur := cryptoEnv(t, "DEFAULT")
+	run.fail["dnf -y makecache --refresh"] = true
+	must(t, cryptoControl().Apply(context.Background(), env, control.Values{"policy": {"FUTURE"}}))
+	if *cur != "FUTURE" {
+		t.Fatalf("policy: %s", *cur)
+	}
+}

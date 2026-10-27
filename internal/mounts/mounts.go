@@ -19,8 +19,10 @@ import (
 // Helpers for the controls that change mount options.
 
 // Options returns the options a mount point has now, as a set, and as raw text.
+// A directory that is not a mount point (/tmp on AlmaLinux) gives the options of
+// the file system it lives on.
 func Options(ctx context.Context, env *control.Env, mnt string) (map[string]bool, string, error) {
-	out, err := env.Run.Run(ctx, "findmnt", "-n", "-o", "OPTIONS", mnt)
+	out, err := env.Run.Run(ctx, "findmnt", "-n", "-o", "OPTIONS", "-T", mnt)
 	if err != nil {
 		return nil, "", fmt.Errorf("cannot read the mount options of %s: %w", mnt, err)
 	}

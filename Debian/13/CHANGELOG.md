@@ -1,5 +1,10 @@
 # Changelog (Debian-13)
 
+## Version: Debian-13-Rev-4
+27 October 2026
+
+* **/tmp.** `filesystem.tmp-hardening` also works when `/tmp` is a plain directory and not a mount. It asked for the mount options of `/tmp` and failed. It now reads the file system that holds `/tmp`, and turns on the systemd `/tmp` mount. The shared mount helper does the same for `/dev/shm` and `/proc`. (27 October 2026, Danang Galuh Tegar Prasetyo)
+
 ## Version: Debian-13-Rev-3
 27 October 2026
 

@@ -1407,13 +1407,13 @@ Filesystems that cloud images use, such as `iso9660` and `udf`, are not in the l
 
 **Why.** On this system the crypto policy decides which SSH algorithms are used, so it takes the place of an explicit list of SSH algorithms. A single policy keeps every service consistent and moves forward with the OS, instead of a hand-written list that ages. The recommended choice, `DEFAULT:NO-SHA1`, additionally refuses SHA-1 signatures.
 
-**What it changes.** Installs `crypto-policies-scripts` if it is missing, reads the current policy, and sets the new one with `update-crypto-policies --set`. The previous policy is recorded. It then lets `sshd` check its configuration (`sshd -t`) and reloads it. If `sshd` refuses its configuration under the new policy, the old policy comes back and the control reports the error. If the system is in FIPS mode, the control refuses and changes nothing, because FIPS mode is switched with `fips-mode-setup`.
+**What it changes.** Installs `crypto-policies-scripts` if it is missing, reads the current policy, and sets the new one with `update-crypto-policies --set`. The previous policy is recorded. It then lets `sshd` check its configuration (`sshd -t`) and reloads it. If `sshd` refuses its configuration under the new policy, the old policy comes back and the control reports the error. It also reads the repository metadata with `dnf makecache --refresh` before and after the change. If that worked before and fails afterwards, for example because a mirror's HTTPS certificate has a key that is too weak for the policy, the old policy comes back as well and the control reports the error. If it already failed before, the policy is not blamed and the change stays. If the system is in FIPS mode, the control refuses and changes nothing, because FIPS mode is switched with `fips-mode-setup`.
 
 **Inputs.** The policy:
 - `DEFAULT:NO-SHA1`: the system default without SHA-1 signatures. This is the default answer.
 - `FUTURE`: the strictest choice. It refuses RSA keys under 3072 bits, including the keys of people logging in.
 
-**Side effects.** Old clients, old keys and old devices that depend on weak algorithms stop connecting. With `FUTURE`, check first that every authorized key and every host key is Ed25519 or RSA with 3072 bits or more. Programs that are already running read the policy again when they restart, so restart services or reboot to be sure. Because a bad policy can cut off SSH, this control is tagged `lockout`: the tool asks you to open a second session and confirm before it keeps the change.
+**Side effects.** Old clients, old keys and old devices that depend on weak algorithms stop connecting. With `FUTURE`, check first that every authorized key and every host key is Ed25519 or RSA with 3072 bits or more, and that the package mirror's certificate is too: a 2048-bit RSA certificate is refused and `dnf` stops working. The control checks this for the repositories that are configured when it runs, but not for a mirror you add later. Programs that are already running read the policy again when they restart, so restart services or reboot to be sure. Because a bad policy can cut off SSH, this control is tagged `lockout`: the tool asks you to open a second session and confirm before it keeps the change.
 
 **How to verify.** `update-crypto-policies --show` prints the chosen policy, and `update-crypto-policies --check` reports that the generated files match it.
 
@@ -1520,7 +1520,9 @@ Filesystems that cloud images use, such as `iso9660` and `udf`, are not in the l
 **Why.** Files created with the usual `022` are readable by every account on the machine. Other accounts include service users and any process that gets compromised.
 
 **What it changes.**
-- Sets the value for every login session type through the PAM `pam_umask` module and `/etc/login.defs`, not only for terminal logins. This is meant to cover SFTP, `scp` and `rsync`, which skip shell startup files.
+- Sets `UMASK` in `/etc/login.defs`. The PAM module `pam_umask` reads it for sessions that start without a shell, such as SFTP, `scp` and `rsync`.
+- Writes `/etc/profile.d/zz-server-hardening-umask.sh` with the same umask, for login shells.
+- Does not edit the PAM files. AlmaLinux generates them with `authselect`, which would replace the change. If no PAM session runs `pam_umask` (look in `/etc/pam.d/postlogin`, `system-auth` and `password-auth`), the control says so and the value in `login.defs` reaches login shells only.
 - Cron jobs and systemd services have their own umask and are not changed.
 
 **Inputs.** The umask value. Default: `027`.
@@ -1529,7 +1531,7 @@ Filesystems that cloud images use, such as `iso9660` and `udf`, are not in the l
 
 **How to verify.** A file created over SFTP, and one created in a terminal, both get the permissions that the chosen value produces.
 
-**Revert.** Puts back the recorded `UMASK` value in `/etc/login.defs` and removes the `pam_umask` line from the session PAM configuration.
+**Revert.** Puts back the recorded `UMASK` value in `/etc/login.defs` and removes the shell start-up file.
 
 **Revert limits.** Files already created keep their permissions. Open sessions keep their umask until the next login.
 

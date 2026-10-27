@@ -24,7 +24,7 @@ var System = &registry.System{
 	OSID:      "almalinux",
 	Version:   "10",
 	ID:        "almalinux-10",
-	Name:      "AlmaLinux 10 (Heliotrope Lion)",
+	Name:      "AlmaLinux 10",
 	Dir:       "AlmaLinux/10/Controls",
 	Reference: almalinux10.Reference,
 	// The architectures AlmaLinux 10 is released for that this tool is meant

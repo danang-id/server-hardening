@@ -238,7 +238,7 @@ This order is fixed. A user's selection only filters it, and dependencies are ad
         <h2>AlmaLinux</h2>
       </td>
       <td style="min-width: 500px">
-        <b><a href="AlmaLinux/10/REFERENCES.md">AlmaLinux 10.x (Heliotrope Lion), tested on 10.2</a></b>
+        <b><a href="AlmaLinux/10/REFERENCES.md">AlmaLinux 10.x, tested on 10.2 (Lavender Lion)</a></b>
         <br/> <b>Interactive tool</b> | <a href="AlmaLinux/10/CHANGELOG.md">CHANGELOG</a>
       </td>
     </tr>

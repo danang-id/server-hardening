@@ -11,7 +11,7 @@ These checks are open for what already exists.
 - Automate that round trip in a container or virtual machine with systemd, so it runs in continuous integration.
 - Run `hardening.ps1` on a real Windows Server. It has only been written, not run.
 - Run `sh scripts/third-party-licenses.sh` against the real modules, then publish the first tag (`v0.1.0`) and check the release it builds.
-- Decide whether `Debian/13/GUIDE.md` and `AlmaLinux/10/GUIDE.md`, the manual guides from before the tool existed, stay in the repository.
+- Move what is still worth keeping out of `Debian/13/GUIDE.md` and `AlmaLinux/10/GUIDE.md` (recovery steps, the maintenance routine, prerequisites, scope), then delete both guides. They were the starting point of this repository, written before the tool existed.
 
 ## Systems
 

@@ -35,17 +35,6 @@ func ed25519Key(seed byte, comment string) string {
 	return strings.TrimSpace("ssh-ed25519 " + base64.StdEncoding.EncodeToString(blob) + " " + comment)
 }
 
-// rsaKey builds an RSA public key with a modulus of the given size.
-func rsaKey(bits int, comment string) string {
-	mod := make([]byte, bits/8+1) // leading zero byte, as in an SSH mpint
-	for i := 1; i < len(mod); i++ {
-		mod[i] = 0xff
-	}
-	blob := append(sshString([]byte("ssh-rsa")), sshString([]byte{1, 0, 1})...)
-	blob = append(blob, sshString(mod)...)
-	return strings.TrimSpace("ssh-rsa " + base64.StdEncoding.EncodeToString(blob) + " " + comment)
-}
-
 // An sshd that answers from the files under the fake root
 
 var sshdDefaults = map[string]string{

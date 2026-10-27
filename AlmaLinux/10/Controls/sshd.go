@@ -70,7 +70,3 @@ func sshdApply(ctx context.Context, env *control.Env, id, name string, ds []dire
 func sshdRevert(ctx context.Context, env *control.Env, id, name string) error {
 	return sshdServer.Revert(ctx, env, id, name)
 }
-
-func sshdQuery(ctx context.Context, env *control.Env, what string) ([]string, error) {
-	return sshd.Query(ctx, env, what)
-}

@@ -25,17 +25,6 @@ func appendLine(t *testing.T, env *control.Env, p, line string) {
 	writeFile(t, env, p, read(t, env, p)+line+"\n")
 }
 
-func dropLines(t *testing.T, env *control.Env, p, containing string) {
-	t.Helper()
-	var keep []string
-	for l := range strings.SplitSeq(read(t, env, p), "\n") {
-		if l != "" && !strings.Contains(l, containing) {
-			keep = append(keep, l)
-		}
-	}
-	writeFile(t, env, p, strings.Join(keep, "\n")+"\n")
-}
-
 const (
 	basePasswd = "root:x:0:0:root:/root:/bin/bash\n" +
 		"daemon:x:2:2:daemon:/sbin:/sbin/nologin\n" +

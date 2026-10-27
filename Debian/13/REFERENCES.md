@@ -44,13 +44,13 @@ Every category has at least one control on Debian 13.
 | 07 | Logging, Detection and Prevention | 7 | Covered |
 | 08 | System and Kernel | 5 | Covered |
 | 09 | Filesystem and Storage | 6 | Covered |
-| 10 | Miscellaneous | 7 | Covered |
+| 10 | Miscellaneous | 6 | Covered |
 
 No category is N/A on Debian 13.
 
 ## Control index
 
-58 controls. Of these, 44 are ticked in recommended defaults mode. Weight is 500 unless shown.
+57 controls. Of these, 44 are ticked in recommended defaults mode. Weight is 500 unless shown.
 
 | No. | ID | What it does | Default | Weight | Requires | Tags |
 |---|---|---|---|---|---|---|
